@@ -1,25 +1,13 @@
 table
 =====
 
-[![Build Status](https://travis-ci.org/modood/table.png)](https://travis-ci.org/modood/table)
-[![Coverage Status](https://coveralls.io/repos/github/modood/table/badge.svg?branch=master)](https://coveralls.io/github/modood/table?branch=master)
-[![GoDoc](https://godoc.org/github.com/modood/table?status.svg)](http://godoc.org/github.com/modood/table)
-
-Produces a string that represents slice of structs data in a text table, inspired by gajus/table.
-
-**Features:**
-
--   No dependency.
--   Cell content aligned.
--   Column width self-adaptation
--   Support type of struct field: int, float, string, bool, slice, struct, map, time.Time and everything.
--   Support custom table header by declaring optional tag: `table`.(Thanks @skyfireitdiy)
+Modified from github.com/modood/table.
 
 Installation
 ------------
 
 ```
-$ go get github.com/modood/table
+$ go get github.com/404tk/table
 ```
 
 Quick start
@@ -29,7 +17,7 @@ Quick start
 package main
 
 import (
-	"github.com/modood/table"
+	"github.com/404tk/table"
 )
 
 type House struct {

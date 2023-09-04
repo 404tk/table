@@ -1,4 +1,4 @@
-// Copyright 2017 modood. All rights reserved.
+// Copyright 2023 404tk. All rights reserved.
 // license that can be found in the LICENSE file.
 
 // Package table produces a string that represents slice of structs data in a text table
@@ -7,61 +7,67 @@ package table
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
+	"gorm.io/gorm/logger"
 )
 
-type bd struct {
-	H  rune // BOX DRAWINGS HORIZONTAL
-	V  rune // BOX DRAWINGS VERTICAL
-	VH rune // BOX DRAWINGS VERTICAL AND HORIZONTAL
-	HU rune // BOX DRAWINGS HORIZONTAL AND UP
-	HD rune // BOX DRAWINGS HORIZONTAL AND DOWN
-	VL rune // BOX DRAWINGS VERTICAL AND LEFT
-	VR rune // BOX DRAWINGS VERTICAL AND RIGHT
-	DL rune // BOX DRAWINGS DOWN AND LEFT
-	DR rune // BOX DRAWINGS DOWN AND RIGHT
-	UL rune // BOX DRAWINGS UP AND LEFT
-	UR rune // BOX DRAWINGS UP AND RIGHT
-}
-
-var m = map[string]bd{
-	"ascii":       {'-', '|', '+', '+', '+', '+', '+', '+', '+', '+', '+'},
-	"box-drawing": {'─', '│', '┼', '┴', '┬', '┤', '├', '┐', '┌', '┘', '└'},
-}
-
-// Output formats slice of structs data and writes to standard output.(Using box drawing characters)
+// Output formats slice of structs data and writes to standard output.
 func Output(slice interface{}) {
-	fmt.Println(Table(slice))
+	coln, rows, err := parse(slice)
+	if err != nil {
+		logger.Error(err)
+	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(coln)
+
+	for _, v := range rows {
+		table.Append(v)
+	}
+	table.Render()
 }
 
-// OutputA formats slice of structs data and writes to standard output.(Using standard ascii characters)
-func OutputA(slice interface{}) {
-	fmt.Println(AsciiTable(slice))
-}
-
-// Table formats slice of structs data and returns the resulting string.(Using box drawing characters)
+// Table formats slice of structs data and returns the resulting string.
 func Table(slice interface{}) string {
-	coln, colw, rows, err := parse(slice)
+	coln, rows, err := parse(slice)
 	if err != nil {
-		return err.Error()
+		logger.Error(err)
 	}
-	table := table(coln, colw, rows, m["box-drawing"])
-	return table
+	var b strings.Builder
+	table := tablewriter.NewWriter(&b)
+	table.SetHeader(coln)
+
+	for _, v := range rows {
+		table.Append(v)
+	}
+	table.Render()
+	return b.String()
 }
 
-// AsciiTable formats slice of structs data and returns the resulting string.(Using standard ascii characters)
-func AsciiTable(slice interface{}) string {
-	coln, colw, rows, err := parse(slice)
+func FileOutput(filename string, slice interface{}) {
+	coln, rows, err := parse(slice)
 	if err != nil {
-		return err.Error()
+		logger.Error(err)
 	}
-	table := table(coln, colw, rows, m["ascii"])
-	return table
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		logger.Error(err)
+	}
+	defer file.Close()
+	table := tablewriter.NewWriter(file)
+	table.SetHeader(coln)
+
+	for _, v := range rows {
+		table.Append(v)
+	}
+	table.Render()
 }
 
 func parse(slice interface{}) (
 	coln []string, // name of columns
-	colw []int, // width of columns
 	rows [][]string, // rows of content
 	err error,
 ) {
@@ -82,11 +88,8 @@ func parse(slice interface{}) (
 			return
 		}
 		var row []string
-
-		m := 0 // count of unexported field
 		for n := 0; n < v.NumField(); n++ {
 			if t.Field(n).PkgPath != "" {
-				m++
 				continue
 			}
 			cn := t.Field(n).Name
@@ -94,62 +97,22 @@ func parse(slice interface{}) (
 			if ct == "" {
 				ct = cn
 			} else if ct == "-" {
-				m++
 				continue
 			}
 			cv := fmt.Sprintf("%+v", v.FieldByName(cn).Interface())
+			if len(cv) > 40 {
+				cv = stringWrap(cv, 40)
+			}
 
 			if i == 0 {
 				coln = append(coln, ct)
-				colw = append(colw, len(ct))
-			}
-			if colw[n-m] < len(cv) {
-				colw[n-m] = len(cv)
 			}
 
 			row = append(row, cv)
 		}
 		rows = append(rows, row)
 	}
-	return coln, colw, rows, nil
-}
-
-func table(coln []string, colw []int, rows [][]string, b bd) (table string) {
-	if len(rows) == 0 {
-		return ""
-	}
-	head := [][]rune{{b.DR}, {b.V}, {b.VR}}
-	bttm := []rune{b.UR}
-	for i, v := range colw {
-		head[0] = append(head[0], []rune(repeat(v+2, b.H)+string(b.HD))...)
-		head[1] = append(head[1], []rune(" "+coln[i]+repeat(v-StringLength([]rune(coln[i]))+1, ' ')+string(b.V))...)
-		head[2] = append(head[2], []rune(repeat(v+2, b.H)+string(b.VH))...)
-		bttm = append(bttm, []rune(repeat(v+2, b.H)+string(b.HU))...)
-	}
-	head[0][len(head[0])-1] = b.DL
-	head[2][len(head[2])-1] = b.VL
-	bttm[len(bttm)-1] = b.UL
-
-	var body [][]rune
-	for _, r := range rows {
-		row := []rune{b.V}
-		for i, v := range colw {
-			// handle non-ascii character
-			l := StringLength([]rune(r[i]))
-
-			row = append(row, []rune(" "+r[i]+repeat(v-l+1, ' ')+string(b.V))...)
-		}
-		body = append(body, row)
-	}
-
-	for _, v := range head {
-		table += string(v) + "\n"
-	}
-	for _, v := range body {
-		table += string(v) + "\n"
-	}
-	table += string(bttm)
-	return table
+	return coln, rows, nil
 }
 
 func sliceconv(slice interface{}) ([]interface{}, error) {
@@ -159,6 +122,7 @@ func sliceconv(slice interface{}) ([]interface{}, error) {
 	}
 
 	l := v.Len()
+
 	r := make([]interface{}, l)
 	for i := 0; i < l; i++ {
 		r[i] = v.Index(i).Interface()
@@ -166,44 +130,20 @@ func sliceconv(slice interface{}) ([]interface{}, error) {
 	return r, nil
 }
 
-func repeat(time int, char rune) string {
-	var s = make([]rune, time)
-	for i := range s {
-		s[i] = char
-	}
-	return string(s)
-}
+func stringWrap(s string, limit int) string {
+	strSlice := strings.Split(s, "")
+	var result string = ""
 
-// StringLength string display length
-func StringLength(r []rune) int {
-	// CJK(Chinese, Japanese, Korean)
-	type cjk struct {
-		from rune
-		to   rune
-	}
-
-	// References:
-	// -   [Unicode Table](http://www.tamasoft.co.jp/en/general-info/unicode.html)
-	// -   [汉字 Unicode 编码范围](http://www.qqxiuzi.cn/zh/hanzi-unicode-bianma.php)
-
-	var a = []cjk{
-		{0x2E80, 0x9FD0},   // Chinese, Hiragana, Katakana, ...
-		{0xAC00, 0xD7A3},   // Hangul
-		{0xF900, 0xFACE},   // Kanji
-		{0xFE00, 0xFE6C},   // Fullwidth
-		{0xFF00, 0xFF60},   // Fullwidth again
-		{0x20000, 0x2FA1D}, // Extension
-		// More? PRs are aways welcome here.
-	}
-	length := len(r)
-l:
-	for _, v := range r {
-		for _, c := range a {
-			if v >= c.from && v <= c.to {
-				length++
-				continue l
-			}
+	for len(strSlice) > 0 {
+		if len(strSlice) >= limit {
+			result = result + strings.Join(strSlice[:limit], "") + "\n"
+			strSlice = strSlice[limit:]
+		} else {
+			length := len(strSlice)
+			result = result + strings.Join(strSlice[:length], "")
+			strSlice = []string{}
 		}
 	}
-	return length
+
+	return result
 }
