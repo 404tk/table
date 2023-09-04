@@ -7,19 +7,19 @@ package table
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-	"gorm.io/gorm/logger"
 )
 
 // Output formats slice of structs data and writes to standard output.
 func Output(slice interface{}) {
 	coln, rows, err := parse(slice)
 	if err != nil {
-		logger.Error(err)
+		log.Println(err)
 	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(coln)
@@ -34,7 +34,7 @@ func Output(slice interface{}) {
 func Table(slice interface{}) string {
 	coln, rows, err := parse(slice)
 	if err != nil {
-		logger.Error(err)
+		log.Println(err)
 	}
 	var b strings.Builder
 	table := tablewriter.NewWriter(&b)
@@ -50,11 +50,11 @@ func Table(slice interface{}) string {
 func FileOutput(filename string, slice interface{}) {
 	coln, rows, err := parse(slice)
 	if err != nil {
-		logger.Error(err)
+		log.Println(err)
 	}
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		logger.Error(err)
+		log.Println(err)
 	}
 	defer file.Close()
 	table := tablewriter.NewWriter(file)
