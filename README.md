@@ -44,11 +44,11 @@ func main() {
 
 output:
 ```
-┌───────────┬──────────┬──────────────────┐
-│ Name      │ Sigil    │ Motto            │
-├───────────┼──────────┼──────────────────┤
-│ Stark     │ direwolf │ Winter is coming │
-│ Targaryen │ dragon   │ Fire and Blood   │
-│ Lannister │ lion     │ Hear Me Roar     │
-└───────────┴──────────┴──────────────────┘
++-----------+----------+------------------+
+|   NAME    |  SIGIL   |      MOTTO       |
++-----------+----------+------------------+
+| Stark     | direwolf | Winter is coming |
+| Targaryen | dragon   | Fire and Blood   |
+| Lannister | lion     | Hear Me Roar     |
++-----------+----------+------------------+
 ```
