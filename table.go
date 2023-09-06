@@ -23,10 +23,9 @@ func Output(slice interface{}) {
 	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(coln)
-
-	for _, v := range rows {
-		table.Append(v)
-	}
+	table.SetAutoFormatHeaders(false)
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.AppendBulk(rows)
 	table.Render()
 }
 
@@ -108,9 +107,17 @@ func parse(slice interface{}) (
 				}
 				check[ct] = index
 			}
-			if len(cv) > 40 {
-				cv = stringWrap(cv, 40)
+
+			strSlice := strings.Split(cv, "\n")
+			cv = ""
+			for _, s := range strSlice {
+				if len(s) > 40 {
+					cv += stringWrap(s, 40) + "\n"
+				} else {
+					cv += s + "\n"
+				}
 			}
+			cv = strings.TrimRight(cv, "\n")
 
 			row[index] = cv
 			index += 1
@@ -149,11 +156,11 @@ func stringWrap(s string, limit int) string {
 
 	for len(strSlice) > 0 {
 		if len(strSlice) >= limit {
-			result = result + strings.Join(strSlice[:limit], "") + "\n"
+			result += strings.Join(strSlice[:limit], "") + "\n"
 			strSlice = strSlice[limit:]
 		} else {
 			length := len(strSlice)
-			result = result + strings.Join(strSlice[:length], "")
+			result += strings.Join(strSlice[:length], "")
 			strSlice = []string{}
 		}
 	}
