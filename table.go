@@ -38,10 +38,9 @@ func Table(slice interface{}) string {
 	var b strings.Builder
 	table := tablewriter.NewWriter(&b)
 	table.SetHeader(coln)
-
-	for _, v := range rows {
-		table.Append(v)
-	}
+	table.SetAutoFormatHeaders(false)
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.AppendBulk(rows)
 	table.Render()
 	return b.String()
 }
@@ -58,10 +57,9 @@ func FileOutput(filename string, slice interface{}) {
 	defer file.Close()
 	table := tablewriter.NewWriter(file)
 	table.SetHeader(coln)
-
-	for _, v := range rows {
-		table.Append(v)
-	}
+	table.SetAutoFormatHeaders(false)
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.AppendBulk(rows)
 	table.Render()
 }
 
@@ -76,7 +74,7 @@ func parse(slice interface{}) (
 	}
 	check := make(map[string]int)
 	var _rows []map[int]string
-	for i, u := range s {
+	for _, u := range s {
 		v := reflect.ValueOf(u)
 		t := reflect.TypeOf(u)
 		if v.Kind() == reflect.Ptr {
@@ -102,7 +100,7 @@ func parse(slice interface{}) (
 			}
 			cv := fmt.Sprintf("%+v", v.FieldByName(cn).Interface())
 			if len(cv) > 0 {
-				if i == 0 {
+				if !isContain(coln, ct) {
 					coln = append(coln, ct)
 				}
 				check[ct] = index
@@ -152,7 +150,7 @@ func sliceconv(slice interface{}) ([]interface{}, error) {
 
 func stringWrap(s string, limit int) string {
 	strSlice := strings.Split(s, "")
-	var result string = ""
+	result := ""
 
 	for len(strSlice) > 0 {
 		if len(strSlice) >= limit {
@@ -166,4 +164,13 @@ func stringWrap(s string, limit int) string {
 	}
 
 	return result
+}
+
+func isContain(items []string, item string) bool {
+	for _, eachItem := range items {
+		if eachItem == item {
+			return true
+		}
+	}
+	return false
 }

@@ -26,4 +26,7 @@ func Example() {
 	// Or just return table string and then do something
 	s := table.Table(hs)
 	_ = s
+
+	// Output to file
+	table.FileOutput("test.log", hs)
 }
